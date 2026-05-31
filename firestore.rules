@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Phase 2: Validation Blueprints
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             (!('nickname' in data) || (data.nickname is string && data.nickname.size() <= 50)) &&
+             data.email is string && data.email.size() <= 128 &&
+             data.plan in ['free', 'premium', 'pending'] &&
+             (!('age' in data) || data.age is number) &&
+             (!('cycleLength' in data) || data.cycleLength is number) &&
+             (!('periodLength' in data) || data.periodLength is number) &&
+             (!('language' in data) || (data.language is string && data.language.size() <= 10)) &&
+             (!('notifications' in data) || data.notifications is map);
+    }
+
+    function isValidCycleLog(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.date is string && data.date.size() <= 50 &&
+             data.mood is string && data.mood.size() <= 50 &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 100)) &&
+             (!('symptoms' in data) || (data.symptoms is list && data.symptoms.size() <= 50)) &&
+             (!('intensity' in data) || (data.intensity is number && data.intensity >= 1 && data.intensity <= 5)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('water' in data) || data.water is number) &&
+             (!('sleep' in data) || data.sleep is number) &&
+             (!('flow' in data) || data.flow is bool) &&
+             (!('temperature' in data) || data.temperature is number) &&
+             (!('mucus' in data) || (data.mucus is string && data.mucus.size() <= 100));
+    }
+
+    function isValidAIChatSession(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 200)) &&
+             data.messages is list && data.messages.size() <= 100 &&
+             (data.messages.size() == 0 || (
+               data.messages[0].role in ['user', 'model'] &&
+               data.messages[0].text is string && data.messages[0].text.size() <= 5000
+             ));
+    }
+
+    // Phase 4: Match Blocks
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().id == userId &&
+                    isValidId(userId) &&
+                    incoming().createdAt == request.time &&
+                    incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        // Action: Update Profile
+        (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'nickname', 'age', 'cycleLength', 'periodLength', 'language', 'notifications', 'updatedAt']) && 
+         incoming().updatedAt == request.time) ||
+        // Action: Upgrade Plan (Simulated)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['plan', 'updatedAt']) && 
+         incoming().updatedAt == request.time)
+      ) && incoming().createdAt == existing().createdAt;
+
+      match /logs/{logId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCycleLog(incoming()) && 
+                      isValidId(logId) &&
+                      incoming().createdAt == request.time &&
+                      incoming().updatedAt == request.time;
+        allow update: if isOwner(userId) && isValidCycleLog(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'date', 'mood', 'title', 'symptoms', 'intensity', 'notes', 
+            'water', 'sleep', 'flow', 'temperature', 'mucus', 'updatedAt'
+          ]) && 
+          incoming().updatedAt == request.time
+        ) && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      match /chats/{chatId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidAIChatSession(incoming()) && 
+                      isValidId(chatId) &&
+                      incoming().userId == userId &&
+                      incoming().createdAt == request.time &&
+                      incoming().updatedAt == request.time;
+        allow update: if isOwner(userId) && isValidAIChatSession(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'title', 'updatedAt']) && 
+          incoming().updatedAt == request.time
+        ) && incoming().createdAt == existing().createdAt &&
+          incoming().userId == userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

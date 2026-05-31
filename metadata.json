@@ -1,0 +1,6 @@
+{
+  "name": "Luna — Period Tracker",
+  "description": "A smart period tracker with bio-aligned cycle nutrition plans, AI insights, partner mode, activity logging, and multi-language support.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

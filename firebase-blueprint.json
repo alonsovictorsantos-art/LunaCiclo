@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nickname": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "plan": { "type": "string", "enum": ["free", "premium", "pending"] },
+        "age": { "type": "number" },
+        "cycleLength": { "type": "number" },
+        "periodLength": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "plan"]
+    },
+    "CycleLog": {
+      "title": "Cycle Log",
+      "description": "Daily health and cycle log entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "title": { "type": "string" },
+        "mood": { "type": "string" },
+        "symptoms": { "type": "array", "items": { "type": "string" } },
+        "intensity": { "type": "number", "minimum": 1, "maximum": 5 },
+        "notes": { "type": "string" },
+        "water": { "type": "number" },
+        "sleep": { "type": "number" },
+        "flow": { "type": "boolean" },
+        "temperature": { "type": "number" },
+        "mucus": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "date", "mood"]
+    },
+    "AIChatSession": {
+      "title": "AI Chat Session",
+      "description": "History of conversations with the AI assistant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string", "enum": ["user", "model"] },
+              "text": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "messages"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User private data and profile"
+    },
+    "users/{userId}/logs/{logId}": {
+      "schema": "CycleLog",
+      "description": "Daily logs for the user"
+    },
+    "users/{userId}/chats/{chatId}": {
+      "schema": "AIChatSession",
+      "description": "History of AI chat sessions"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-pink-primary: #D4537E;
+  --color-pink-light: #FBEAF0;
+  --color-pink-mid: #F4C0D1;
+  --color-purple-primary: #7F77DD;
+  --color-teal-primary: #1D9E75;
+  --color-amber-primary: #BA7517;
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-900;
+  }
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day {
+  @apply aspect-square rounded-full flex items-center justify-center text-sm cursor-pointer transition-colors;
+}
+
+.cal-day-period {
+  @apply bg-pink-mid text-pink-900 font-semibold;
+}
+
+.cal-day-fertile {
+  @apply bg-[#9FE1CB] text-[#085041] font-semibold;
+}
+
+.cal-day-ovulation {
+  @apply bg-pink-primary text-white font-semibold shadow-lg shadow-pink-primary/20;
+}
+
+.cal-day-predicted {
+  @apply bg-pink-light text-pink-900;
+}
